@@ -89,11 +89,32 @@ class BluetoothPrinterManager extends PrinterManager {
           await disconnect();
         }
       } else if (Platform.isIOS) {
-        var services = (await fbdevice.discoverServices());
-        var service = services.firstWhere((e) => e.isPrimary);
-        var charactor =
-            service.characteristics.firstWhere((e) => e.properties.write);
-        await charactor?.write(data, withoutResponse: true);
+        // var services = (await fbdevice.discoverServices());
+        // var service = services.firstWhere((e) => e.isPrimary);
+        // var charactor =
+        //     service.characteristics.firstWhere((e) => e.properties.write);
+        // await charactor?.write(data, withoutResponse: true);
+        fblue.BluetoothCharacteristic printerService;
+        List<fblue.BluetoothService> services =
+            (await fbdevice.discoverServices());
+        for (var service in services) {
+          if (service.isPrimary) {
+            for (var character in service.characteristics) {
+              if (character.properties.write) {
+                printerService = character;
+              }
+            }
+          }
+        }
+        final len = data.length;
+        List<List<int>> chunks = [];
+        for (var i = 0; i < len; i += 100) {
+          var end = (i + 100 < len) ? i + 100 : len;
+          chunks.add(data.sublist(i, end));
+        }
+        for (var i = 0; i < chunks.length; i++) {
+          await printerService?.write(chunks[i]);
+        }
       }
     } catch (e) {
       print("Error : $e");
